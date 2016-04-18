@@ -1,5 +1,4 @@
 var DEFAULT = {
-  canvasSize: 400,
   time: 500,
   rate: 1,
   blockSize: 20,
@@ -66,11 +65,11 @@ Snake.prototype.reset = function(){
 
 Snake.prototype.setCanvas = function(){
   if(this.canvas){
-    this.canvas.width = this.row * this.blockSize || this.defaultSize;
-    this.canvas.height = this.col * this.blockSize || this.defaultSize;
+    this.canvas.width = this.col * this.blockSize || this.defaultSize;
+    this.canvas.height = this.row * this.blockSize || this.defaultSize;
     this.ctx = this.canvas.getContext('2d');
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
-  this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 }
 
 Snake.prototype.draw = function(){
