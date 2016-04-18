@@ -1,0 +1,11 @@
+body {
+  text-align: center;
+}
+
+.btn {
+  margin: 0px auto 20px;
+}
+
+#playboard {
+  border: 1px solid #000;
+}
