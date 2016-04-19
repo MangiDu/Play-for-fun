@@ -42,19 +42,20 @@ Game.prototype = {
 }
 
 // Tetris blocks
+// Block only takes actions
+// Tetris makes sure whether to act block or when to correct block's postion
 function Node(x, y){
   this.x = x;
   this.y = y;
 }
 
-// Block only takes actions
-// Tetris makes sure whether to act block or when to correct block's postion
 function Block(type){
   this.createSquare(type);
   this.setBirthPlace();
 }
 
 Block.prototype.createSquare = function(type){
+  // get a spercific kind of block or a random one
   if(!type){
     type = Math.floor(Math.random() * 6); // 6 kinds of block
   }
@@ -158,6 +159,16 @@ Block.prototype.drop = function(){
   })
 }
 
+Block.prototype.toDrop = function(){
+  var block = new Block();
+  var squares = [];
+  for(var i = 0; i < this.squares.length; i++){
+    squares.push(new Node(this.squares[i].x, this.squares[i].y + 1));
+  }
+  block.squares = squares;
+  return block;
+}
+
 Block.prototype.canDrop = function(){
   return this.squares.every(function(node){
     if(node.y + 1 < DEFAULT.row){
@@ -165,10 +176,6 @@ Block.prototype.canDrop = function(){
     }
     return false;
   });
-}
-
-Block.prototype.freeze = function(){
-
 }
 
 Block.prototype.left = function(){
@@ -269,39 +276,52 @@ Tetris.prototype.takeAction = function(code){
       break;
     case(40):
       // direction = 'down';
-      if(this.block.canDrop()){
+      if(this.block.canDrop() && !this.board.isCrashing(this.block.toDrop())){
         this.block.drop();
       }else{
-        this.freeze(this.block);
+        this.freezeBlock(this.block);
       }
       break;
   }
   this.drawBlock(this.block);
 }
-Tetris.prototype.freeze = function(block){
+Tetris.prototype.freezeBlock = function(block){
   this.drawBlock(block);
   for(var i = 0; i < block.squares.length; i++){
     var x = block.squares[i].x;
     var y = block.squares[i].y;
     this.board.add(x, y);
   }
+  var full = this.board.getFullRow();
+  for(var rowNumber of full){
+    this.board.removeRow(rowNumber);
+    this.ctx.clearRect(0, rowNumber * DEFAULT.blockSize, DEFAULT.blockSize * DEFAULT.col, DEFAULT.blockSize);
+    this.drawBoard(this.board);
+  }
   this.block = new Block();
 }
 
+Tetris.prototype.drawBoard = function(board){
+  this.ctx.clearRect(0, 0, 200, 400);
+  for(var y = 0; y < DEFAULT.row; y++){
+    for(var x = 0; x < DEFAULT.col; x++){
+      if(board.get(x, y)){
+        this.ctx.fillRect(x * DEFAULT.blockSize, y * DEFAULT.blockSize, DEFAULT.blockSize, DEFAULT.blockSize);
+      }
+    }
+  }
+}
+
 Tetris.prototype.drawBlock = function(block){
-  var canvas = document.getElementById('playboard');
-  var ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#666';
+  this.ctx.fillStyle = '#666';
   for(var i = 0; i < block.squares.length; i++){
-    ctx.fillRect(block.squares[i].x * this.blockSize, block.squares[i].y * this.blockSize, this.blockSize, this.blockSize);
+    this.ctx.fillRect(block.squares[i].x * this.blockSize, block.squares[i].y * this.blockSize, this.blockSize, this.blockSize);
   }
 }
 
 Tetris.prototype.clearBlock = function(block){
-  var canvas = document.getElementById('playboard');
-  var ctx = canvas.getContext('2d');
   for(var i = 0; i < block.squares.length; i++){
-    ctx.clearRect(block.squares[i].x * this.blockSize, block.squares[i].y * this.blockSize, this.blockSize, this.blockSize);
+    this.ctx.clearRect(block.squares[i].x * this.blockSize, block.squares[i].y * this.blockSize, this.blockSize, this.blockSize);
   }
 }
 
@@ -325,11 +345,15 @@ Board.prototype = {
     this.row[y][x] = true;
   },
   get: function(x, y){
+    if(!this.row[y]){
+      this.row[y] = [];
+    }
     return this.row[y][x];
   },
   removeRow: function(rowNumber){
-    this.row.splice(rowNumber, 1);
+    var toClear = this.row.splice(rowNumber, 1);
     this.row.unshift([]);
+    return toClear;
   },
   getFullRow: function(){
     var full = [];
@@ -347,8 +371,9 @@ Board.prototype = {
     })
   },
   isCrashing: function(block){
+    var me = this;
     return block.squares.some(function(node){
-      return this.get(x, y);
+      return me.get(node.x, node.y);
     })
   }
 }
